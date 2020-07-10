@@ -1,0 +1,23 @@
+table.highlight > tbody,
+table.sort th {
+  cursor: pointer;
+}
+
+table.sort th:after {
+  content: ' \25BC';
+  font-size: calc(1rem / 1.5);
+}
+
+table.sort th.desc:after {
+  content: ' \25B2';
+}
+
+.persons-table-wrapper {
+  min-height: 500px;
+}
+
+.loader-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
