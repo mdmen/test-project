@@ -129,7 +129,7 @@ export class PersonsTable {
       const $target = $(<HTMLInputElement>event.target);
       const $th = $target.closest('th');
 
-      if ($th) {
+      if ($th.is('th')) {
         this.sort = {
           index: $th.index(),
           asc: !$th.hasClass('desc'),
