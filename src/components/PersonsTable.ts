@@ -1,4 +1,4 @@
-import $, { Cash as CashElement } from 'cash-dom';
+import $, { Cash as CashElement, Cash } from 'cash-dom';
 import { personsAPI } from '../api/persons';
 import { PersonFull, baseFields as personBaseFields } from '../models/persons';
 import { Loader } from '../theme/Loader';
@@ -39,6 +39,7 @@ export class PersonsTable {
   private loader: Loader;
   private table: Table;
   private $pager: Pager;
+  private $details: CashElement;
 
   private sort: SortOptions;
   private filter: FilterOptions = {
@@ -79,11 +80,11 @@ export class PersonsTable {
     }
 
     if (this.hasFilter) {
-      this.enableFiltering();
+      this.enableFilter();
     }
   }
 
-  get preparedPersons(): Partial<PersonFull>[] {
+  getPreparedPersons(isFullModel = false): Partial<PersonFull>[] {
     let persons = this.persons;
     const baseProps = Object.keys(personBaseFields);
 
@@ -98,9 +99,12 @@ export class PersonsTable {
     }
 
     const pickOffset = this.currentPage * this.showCount;
-    return persons
-      .slice(pickOffset, pickOffset + this.showCount)
-      .map((item) => pick(item, baseProps));
+    persons = persons.slice(pickOffset, pickOffset + this.showCount);
+    if (isFullModel) {
+      return persons;
+    }
+
+    return persons.map((item) => pick(item, baseProps));
   }
 
   private async loadPersons() {
@@ -117,8 +121,9 @@ export class PersonsTable {
 
   private render() {
     const captions = Object.values(personBaseFields);
-    this.table.render(captions, this.preparedPersons);
+    this.table.render(captions, this.getPreparedPersons());
     this.setPager();
+    this.setDetails();
   }
 
   private enableSort(): void {
@@ -135,14 +140,14 @@ export class PersonsTable {
           asc: !$th.hasClass('desc'),
         };
         $th.toggleClass('desc');
-        this.table.update(this.preparedPersons);
+        this.table.update(this.getPreparedPersons());
       }
     };
 
     table.on('click', onSort);
   }
 
-  private enableFiltering(): void {
+  private enableFilter(): void {
     const placeholder = `Введите минимум ${this.filter.min} символа`;
     const $input = $(
       `<input type="text" size="50" placeholder="${placeholder}" />`,
@@ -152,11 +157,12 @@ export class PersonsTable {
     const onFilter = throttle((event) => {
       const { value } = event.target;
       this.filter.value = value ? value : '';
-      const preparedPersons = this.preparedPersons;
+      const preparedPersons = this.getPreparedPersons();
       this.table.update(preparedPersons);
 
       this.setPager();
       this.currentPage = 0;
+      this.clearDetails();
     }, 300);
 
     $input.on('input', onFilter);
@@ -199,8 +205,52 @@ export class PersonsTable {
     }
   }
 
+  private setDetails(): void {
+    const $table = this.table.getTable();
+
+    const showDetails = (event: MouseEvent) => {
+      const $target = $(<HTMLInputElement>event.target);
+      const $td = $target.closest('td');
+
+      if (!$td.is('td')) {
+        return;
+      }
+
+      const preparedPersons = this.getPreparedPersons(true);
+      const index = $td.closest('tr').index();
+      const person = preparedPersons[index];
+
+      if (!this.$details) {
+        this.$details = $('<div class="details"></div>');
+        this.$details.insertAfter($table);
+      }
+
+      const fullName = `${person.firstName} ${person.lastName}`.trim();
+      this.$details.html(
+        `<div class="details-inner">
+          <p>Выбран пользователь <b>${fullName}</b></p>
+          Описание:
+          <p>${person.description}</p>
+          Адрес проживания: <b>${person.address.streetAddress}</b><br/>
+          Город: <b>${person.address.city}</b><br/>
+          Провинция/штат: <b>${person.address.state}</b><br/>
+          Индекс: <b>${person.address.zip}</b>
+        </div>`,
+      );
+    };
+
+    $table.on('click', showDetails);
+  }
+
+  private clearDetails(): void {
+    if (this.$details) {
+      this.$details.find('.details-inner').remove();
+    }
+  }
+
   private pageNavHandler(index: number): void {
     this.currentPage = index;
-    this.table.update(this.preparedPersons);
+    this.table.update(this.getPreparedPersons());
+    this.clearDetails();
   }
 }
