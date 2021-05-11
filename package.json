@@ -23,7 +23,7 @@
   "dependencies": {
     "cash-dom": "^8.0.0",
     "ky": "^0.20.0",
-    "lodash": "^4.17.19",
+    "lodash": "^4.17.21",
     "materialize-css": "^1.0.0-rc.2"
   },
   "git": {
